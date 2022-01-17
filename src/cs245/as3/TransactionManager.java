@@ -163,7 +163,7 @@ public class TransactionManager {
 				sm.queueWrite(r.record.key, r.offset, r.record.trueValue());
 				latestValues.put(r.record.key, new TaggedValue(r.offset, r.record.trueValue()));
 				//checkPersist.put(r.record.key, r.offset);
-				checkPersist.put(r.record.key, r.record.trueValue(), r.offset);
+				checkPersist.put(r.record.key, r.offset);
 			}
 		}
 	}
@@ -241,7 +241,7 @@ public class TransactionManager {
 			StorageManager_listener.queueWrite(entry.getKey(), offset, record.trueValue());
 			latestValues.put(entry.getKey(), new TaggedValue(offset, record.trueValue()));
 			//checkPersist.put(record.key, offset);
-			checkPersist.put(record.key, record.trueValue(), offset);
+			checkPersist.put(record.key, offset);
 		}
 
 		logsets.remove(txID);
@@ -277,28 +277,29 @@ public class TransactionManager {
 	}
 }
 
+//存储持久化记录，以偏移量排序
 class LRU {
 	Map<Long, Node> cache;
-	TreeMap<Long, HashSet<Node>> map;
-	long minOffset = Integer.MAX_VALUE;
-	long maxOffset = 0;
+	TreeMap<Integer, HashSet<Node>> map;
+	int minOffset = Integer.MAX_VALUE;
+	int maxOffset = 0;
 
 	public LRU() {
 		cache = new HashMap<>();
 		map = new TreeMap<>();
 	}
 
-	public void put(long key, byte[] value, long _offset) {
+	public void put(long key, int _offset) {
 		Node n = cache.get(key);
 		if (n == null) {
-			n = new Node(key, value, _offset);
+			n = new Node(key, _offset);
 		}else {
 			HashSet<Node> set = map.get(n.offset);
 			set.remove(n);
 			if (set.size() == 0) {
 				map.remove(n.offset);
 			}
-			n.value = value; n.offset = _offset;
+			n.offset = _offset;
 		}
 		cache.put(key, n);
 
@@ -313,12 +314,13 @@ class LRU {
 	}
 
 	public void remove(long key, long _offset) {
+		int offset = (int) _offset;
 		Node n = cache.get(key);
-		HashSet<Node> set = map.get(_offset);
+		HashSet<Node> set = map.get(offset);
 		if (set == null) return;
 		set.remove(n);
 		if (set.size() == 0) {
-			map.remove(_offset);
+			map.remove(offset);
 		}
 		cache.remove(key);
 		if (map.size() != 0) minOffset = map.firstKey();
@@ -333,12 +335,10 @@ class LRU {
 
 class Node {
 	long key;
-	byte[] value;
-	long offset;
+	int offset;
 
-	public Node(long key, byte[] value, long offset) {
+	public Node(long key, int offset) {
 		this.key = key;
-		this.value = value;
 		this.offset = offset;
 	}
 }
