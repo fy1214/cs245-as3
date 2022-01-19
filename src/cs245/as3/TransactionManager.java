@@ -25,9 +25,6 @@ import cs245.as3.interfaces.StorageManager.TaggedValue;
  * 您可以假设构造函数和initAndRecover（）都是在任何其他方法之前调用的。
  */
 
-/**
- * 	Integer.MIN_VALUE-1:	事务commit标记
- */
 public class TransactionManager {
 	//每条日志记录长度117
 	static class Record {
@@ -137,7 +134,7 @@ public class TransactionManager {
 				//检查事务组是否被commit
 				List<RecordAndOffset> recordsEachTXid = entry.getValue();
 				RecordAndOffset commitRecord = recordsEachTXid.get(recordsEachTXid.size() - 1);
-				if (commitRecord.record.key != Integer.MIN_VALUE - 1) {
+				if (commitRecord.record.key != Integer.MIN_VALUE) {
 					continue;
 				}
 
@@ -233,7 +230,7 @@ public class TransactionManager {
 			}
 		}
 
-		LogManager_listener.appendLogRecord(new Record(txID, Integer.MIN_VALUE - 1, "commit".getBytes(StandardCharsets.UTF_8)).serialize());
+		LogManager_listener.appendLogRecord(new Record(txID, Integer.MIN_VALUE, "commit".getBytes(StandardCharsets.UTF_8)).serialize());
 
 		//做持久化
 		for (Map.Entry<Long, Record> entry : latestRecord.entrySet()) {
